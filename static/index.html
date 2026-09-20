@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PVE 远程管理客户端</title>
+  <link rel="stylesheet" href="/static/style.css?v=20260917.2" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">PVE</div>
+        <div>
+          <div class="brand-title">远程管理客户端</div>
+          <div class="brand-sub">SSH · 文件 · 监控 · 虚拟机</div>
+        </div>
+      </div>
+
+      <div class="sidebar-block">
+        <div class="label">当前连接</div>
+        <select id="profileSelect" class="control"></select>
+        <div class="row gap">
+          <button id="btnConnect" class="btn primary">连接</button>
+          <button id="btnDisconnect" class="btn">断开</button>
+        </div>
+        <div id="connStatus" class="status">未连接</div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard">仪表盘</button>
+        <button class="nav-item" data-view="guests">虚拟机 / 容器</button>
+        <button class="nav-item" data-view="files">文件管理</button>
+        <button class="nav-item" data-view="editor">配置编辑</button>
+        <button class="nav-item" data-view="terminal">终端</button>
+        <button class="nav-item" data-view="profiles">连接配置</button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="hint">外网访问：填写公网 IP 或域名 + 22 端口<br/>内网可填 PVE 局域网 IP</div>
+        <a id="logoutLink" class="sidebar-logout hidden" href="/logout">退出登录</a>
+      </div>
+    </aside>
+
+    <main id="main">
+      <header id="topbar">
+        <div>
+          <h1 id="viewTitle">仪表盘</h1>
+          <p id="viewSub">系统资源与运行状态</p>
+        </div>
+        <div class="top-actions">
+          <span id="clock" class="muted"></span>
+          <button id="btnRefresh" class="btn">刷新</button>
+        </div>
+      </header>
+
+      <section id="toast" class="toast hidden"></section>
+
+      <!-- Dashboard -->
+      <section class="view active" id="view-dashboard">
+        <div class="cards" id="metricCards">
+          <div class="card metric"><div class="metric-label">CPU</div><div class="metric-value" id="mCpu">—</div><div class="bar"><i id="mCpuBar"></i></div></div>
+          <div class="card metric"><div class="metric-label">内存</div><div class="metric-value" id="mMem">—</div><div class="bar"><i id="mMemBar"></i></div></div>
+          <div class="card metric"><div class="metric-label">负载</div><div class="metric-value" id="mLoad">—</div><div class="metric-sub" id="mHost">—</div></div>
+          <div class="card metric"><div class="metric-label">网络</div><div class="metric-value" id="mNet">—</div><div class="metric-sub">RX / TX</div></div>
+        </div>
+
+        <div class="card" id="servicesCard">
+          <div class="card-h">
+            <span>运行系统 · 单独管理</span>
+            <span class="muted">iStore / iKuai / 飞牛 / Nextcloud 等 · 可配置管理页</span>
+          </div>
+          <div id="serviceGrid" class="service-grid">
+            <div class="muted" style="padding:12px">连接后显示各虚拟机 / 容器</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-h">磁盘</div>
+            <div id="diskList" class="list"></div>
+          </div>
+          <div class="card">
+            <div class="card-h">运行时间 / 主机</div>
+            <div id="hostInfo" class="mono-block"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">节点信息</div>
+          <div id="nodeInfo" class="mono-block">连接后显示</div>
+        </div>
+      </section>
+
+      <!-- In-app system management embed -->
+      <section class="view" id="view-embed">
+        <div class="toolbar embed-toolbar">
+          <button id="btnEmbedBack" class="btn primary">← 返回</button>
+          <button id="btnEmbedHome" class="btn">回到系统列表</button>
+          <button id="btnEmbedReload" class="btn">刷新</button>
+          <button id="btnEmbedReset" class="btn">重新登录</button>
+          <button id="btnEmbedExternal" class="btn">外部打开</button>
+          <div class="embed-title" id="embedTitle">系统管理</div>
+          <input id="embedUrl" class="control grow" readonly />
+        </div>
+        <div class="embed-frame-wrap">
+          <div id="embedBlocked" class="embed-blocked hidden">
+            <div class="embed-blocked-box">
+              <div class="embed-blocked-h">该系统拒绝内嵌显示</div>
+              <p class="muted" id="embedBlockedMsg">
+                出于安全策略（X-Frame-Options / CSP），此管理页不能嵌在客户端里。
+              </p>
+              <div class="row gap">
+                <button id="btnEmbedExternal2" class="btn primary">在外部浏览器打开</button>
+                <button id="btnEmbedBack2" class="btn">返回系统列表</button>
+              </div>
+            </div>
+          </div>
+          <iframe id="embedFrame" title="系统管理"></iframe>
+        </div>
+      </section>
+
+      <!-- Guests -->
+      <section class="view" id="view-guests">
+        <div class="toolbar">
+          <button id="btnRefreshGuests" class="btn">刷新列表</button>
+          <button id="btnCreateVm" class="btn primary">新建虚拟机</button>
+          <button id="btnCreateCt" class="btn">新建容器</button>
+        </div>
+        <div class="card">
+          <div class="card-h">虚拟机 (QEMU)</div>
+          <div id="vmList" class="table-wrap"></div>
+        </div>
+        <div class="card">
+          <div class="card-h">容器 (LXC)</div>
+          <div id="ctList" class="table-wrap"></div>
+        </div>
+
+        <div class="modal hidden" id="modalCreateVm">
+          <div class="modal-box">
+            <div class="modal-h">新建虚拟机</div>
+            <div class="form-grid">
+              <label>VMID <input id="vmVmid" class="control" /></label>
+              <label>名称 <input id="vmName" class="control" placeholder="my-vm" /></label>
+              <label>CPU 核心 <input id="vmCores" type="number" value="2" class="control" /></label>
+              <label>内存 MB <input id="vmMemory" type="number" value="2048" class="control" /></label>
+              <label>磁盘 GB <input id="vmDisk" type="number" value="32" class="control" /></label>
+              <label>存储 <select id="vmStorage" class="control"></select></label>
+              <label>ISO <select id="vmIso" class="control"></select></label>
+              <label>网桥 <input id="vmBridge" value="vmbr0" class="control" /></label>
+              <label class="upload-field">上传 ISO / 镜像到 PVE
+                <span class="upload-row">
+                  <input id="vmIsoUpload" type="file" accept=".iso,.img,.qcow2" class="control" />
+                  <button id="btnUploadVmIso" type="button" class="btn">上传并选中</button>
+                </span>
+              </label>
+            </div>
+            <div class="row gap end">
+              <button class="btn" data-close="modalCreateVm">取消</button>
+              <button id="btnDoCreateVm" class="btn primary">创建</button>
+            </div>
+            <pre id="createVmLog" class="log hidden"></pre>
+          </div>
+        </div>
+
+        <div class="modal hidden" id="modalCreateCt">
+          <div class="modal-box">
+            <div class="modal-h">新建 LXC 容器</div>
+            <div class="form-grid">
+              <label>VMID <input id="ctVmid" class="control" /></label>
+              <label>主机名 <input id="ctHost" class="control" placeholder="ct-01" /></label>
+              <label>模板 <select id="ctTemplate" class="control"></select></label>
+              <label>内存 MB <input id="ctMemory" type="number" value="512" class="control" /></label>
+              <label>CPU <input id="ctCores" type="number" value="1" class="control" /></label>
+              <label>磁盘 GB <input id="ctDisk" type="number" value="8" class="control" /></label>
+              <label>存储 <select id="ctStorage" class="control"></select></label>
+              <label>root 密码 <input id="ctPass" type="password" class="control" /></label>
+              <label class="upload-field">上传 LXC 模板到 PVE
+                <span class="upload-row">
+                  <input id="ctTemplateUpload" type="file" accept=".tar.gz,.tar.xz,.tar.zst" class="control" />
+                  <button id="btnUploadCtTemplate" type="button" class="btn">上传并选中</button>
+                </span>
+              </label>
+            </div>
+            <label class="check"><input type="checkbox" id="ctUnpriv" checked /> 非特权容器</label>
+            <label class="check"><input type="checkbox" id="ctStart" /> 创建后启动</label>
+            <div class="row gap end">
+              <button class="btn" data-close="modalCreateCt">取消</button>
+              <button id="btnDoCreateCt" class="btn primary">创建</button>
+            </div>
+            <pre id="createCtLog" class="log hidden"></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Files -->
+      <section class="view" id="view-files">
+        <div class="toolbar">
+          <button id="btnUp" class="btn">上级</button>
+          <button id="btnReloadDir" class="btn">刷新</button>
+          <button id="btnMkdir" class="btn">新建目录</button>
+          <button id="btnUpload" class="btn">上传文件</button>
+          <input id="fileInput" type="file" class="hidden" />
+          <input id="pathInput" class="control grow" placeholder="/root" />
+          <button id="btnGoPath" class="btn">跳转</button>
+        </div>
+        <div class="card fill">
+          <div class="card-h">远程路径 <span id="currentPath" class="muted">/</span></div>
+          <div id="fileList" class="table-wrap fill"></div>
+        </div>
+      </section>
+
+      <!-- Editor -->
+      <section class="view" id="view-editor">
+        <div class="toolbar">
+          <input id="editPath" class="control grow" placeholder="/etc/pve/storage.cfg 或任意路径" />
+          <button id="btnOpenFile" class="btn">打开</button>
+          <button id="btnSaveFile" class="btn primary">保存</button>
+        </div>
+        <div class="card fill editor-card">
+          <div class="card-h">文件内容 <span id="editMeta" class="muted"></span></div>
+          <textarea id="editor" spellcheck="false" placeholder="打开远程文件后在此编辑并保存。也可先到「文件管理」双击打开。"></textarea>
+        </div>
+      </section>
+
+      <!-- Terminal -->
+      <section class="view" id="view-terminal">
+        <div class="toolbar">
+          <button id="btnTermClear" class="btn">清屏</button>
+          <button id="btnTermReconnect" class="btn">重连终端</button>
+          <span class="muted">SSH 交互终端 · 支持粘贴</span>
+        </div>
+        <div class="card term-card">
+          <div id="term" class="term" tabindex="0"></div>
+          <textarea id="termInput" class="term-input" placeholder="输入命令后回车发送（也可直接在上方区域键入）"></textarea>
+        </div>
+      </section>
+
+      <!-- Profiles -->
+      <section class="view" id="view-profiles">
+        <div class="toolbar">
+          <button id="btnNewProfile" class="btn primary">新建配置</button>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-h">已保存的连接</div>
+            <div id="profileList" class="list"></div>
+          </div>
+          <div class="card">
+            <div class="card-h" id="profileFormTitle">编辑配置</div>
+            <input type="hidden" id="pfId" />
+            <div class="form-grid">
+              <label>显示名称 <input id="pfName" class="control" placeholder="家里 PVE" /></label>
+              <label>主机 IP <input id="pfHost" class="control" placeholder="192.168.1.10" /></label>
+              <label>域名（公网优先） <input id="pfDomain" class="control" placeholder="pve.example.com" /></label>
+              <label>端口 <input id="pfPort" type="number" value="22" class="control" /></label>
+              <label>用户名 <input id="pfUser" class="control" value="root" /></label>
+              <label>认证方式
+                <select id="pfAuth" class="control">
+                  <option value="password">密码</option>
+                  <option value="key">私钥</option>
+                </select>
+              </label>
+            </div>
+            <div id="pfPasswordBox">
+              <label>密码 <input id="pfPassword" type="password" class="control" placeholder="留空则保留原密码" /></label>
+            </div>
+            <div id="pfKeyBox" class="hidden">
+              <label>私钥内容
+                <textarea id="pfKey" class="control mono" rows="6" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea>
+              </label>
+              <label>私钥口令 <input id="pfKeyPass" type="password" class="control" /></label>
+            </div>
+            <label class="check"><input type="checkbox" id="pfAccept" checked /> 自动接受未知主机密钥</label>
+            <label>备注 <input id="pfNote" class="control" /></label>
+            <div class="row gap end">
+              <button id="btnTestProfile" class="btn">测试连接</button>
+              <button id="btnSaveProfile" class="btn primary">保存</button>
+              <button id="btnDeleteProfile" class="btn danger">删除</button>
+            </div>
+            <pre id="profileTestLog" class="log hidden"></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal hidden" id="modalService">
+    <div class="modal-box">
+      <div class="modal-h">配置管理系统</div>
+      <input type="hidden" id="svcVmid" />
+      <input type="hidden" id="svcType" />
+      <div class="form-grid">
+        <label>显示名称 <input id="svcLabel" class="control" placeholder="iKuai / Nextcloud" /></label>
+        <label>类型
+          <select id="svcKind" class="control">
+            <option value="">自动识别</option>
+            <option value="ikuai">iKuai 软路由</option>
+            <option value="istore">iStore / iStoreOS</option>
+            <option value="openwrt">OpenWrt</option>
+            <option value="fnos">飞牛 OS (fnOS)</option>
+            <option value="nextcloud">Nextcloud</option>
+            <option value="nas">NAS / 其他</option>
+            <option value="generic">通用系统</option>
+          </select>
+        </label>
+      </div>
+      <label>管理页地址（Web UI）
+        <input id="svcUrl" class="control" placeholder="http://10.0.0.1 或 10.0.0.20:8000" />
+      </label>
+      <div class="muted" style="margin:-4px 0 8px;font-size:12px">
+        可只填 IP（自动加 http://）。Nextcloud 等 HTTPS 请写完整 https:// 地址。
+      </div>
+      <label>公网地址（可选，外网访问用）
+        <input id="svcPublicUrl" class="control" placeholder="https://ikuai.你的域名" />
+      </label>
+      <div class="muted" style="margin:-4px 0 8px;font-size:12px">
+        填了之后，从外网（非 127.0.0.1）打开本软件时内嵌页会走这个地址；
+        请在反向代理 / 隧道里把它指向本机端口 <span id="svcLocalPort">9000 + VMID</span>。
+      </div>
+      <label>备注 <input id="svcNote" class="control" /></label>
+      <div class="row gap end">
+        <button class="btn" data-close="modalService">取消</button>
+        <button id="btnSaveService" class="btn primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=20260917.4"></script>
+</body>
+</html>

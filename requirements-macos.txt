@@ -1,0 +1,13 @@
+# macOS sidecar backend dependencies (no pywebview: the Swift shell owns the window)
+paramiko>=3.4.0
+fastapi>=0.115.0
+uvicorn>=0.30.0
+websockets>=12.0
+httpx>=0.27.0
+cryptography>=42.0
+python-multipart>=0.0.9
+pyinstaller>=6.0
+# Xcode still bundles Python 3.9 on some macOS releases. Pydantic evaluates
+# postponed ``X | None`` annotations at runtime and needs this compatibility
+# layer when packaging the sidecar with that interpreter.
+eval-type-backport>=0.2.2; python_version < "3.10"

@@ -1,0 +1,8 @@
+# Headless Linux deployment (no desktop shell or build toolchain)
+paramiko>=3.4.0
+fastapi>=0.115.0
+uvicorn>=0.30.0
+websockets>=12.0
+httpx>=0.27.0
+cryptography>=42.0
+python-multipart>=0.0.9

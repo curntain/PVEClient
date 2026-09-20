@@ -1,0 +1,62 @@
+name: macOS app
+
+# 构建 PVEClient.app：SwiftUI 外壳 + PyInstaller 打包的 Python 侧车。
+# 触发：手动运行、或打 tag（v*）时自动出包。
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-macos:
+    runs-on: macos-14
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '1.12' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 系统信息
+        run: |
+          sw_vers
+          uname -m
+          xcodebuild -version
+          swift --version
+          python3 --version
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 缓存 pip
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('requirements-macos.txt') }}
+
+      - name: 构建（脚本内部会做：依赖 → 后端 → swift build → 组装 .app → 签名 → zip）
+        run: bash scripts/build-macos.sh
+        env:
+          # 有证书/公证密钥时自动做 Developer ID 签名 + 公证，没有就 ad-hoc 签名
+          CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
+          NOTARY_PROFILE: ${{ secrets.MACOS_NOTARY_PROFILE }}
+
+      - name: 自检产物
+        run: |
+          test -x "dist-mac/PVEClient.app/Contents/MacOS/PVEClient"
+          test -x "dist-mac/PVEClient.app/Contents/Resources/backend/pve-client-backend"
+          codesign -dv --verbose=2 "dist-mac/PVEClient.app" || true
+          lipo -info "dist-mac/PVEClient.app/Contents/MacOS/PVEClient" || true
+          ls -lh dist-mac
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: PVEClient-macos-${{ env.VERSION }}
+          path: |
+            dist-mac/PVEClient.app
+            dist-mac/*.zip
+          if-no-files-found: error
+          retention-days: 14
