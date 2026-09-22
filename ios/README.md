@@ -1,10 +1,7 @@
 # iOS 客户端
 
-iOS 应用显示同一套 Web 界面，优先探测内网服务，未连通时使用公网服务。发布副本没有预置任何个人地址。
+首次启动时输入可从手机访问的 PVEClient 服务地址；设置页可修改。公网域名必须使用 HTTPS。HTTP 只允许 localhost 和 RFC1918 内网 IPv4 地址。地址保存在本机应用设置中，不烘焙进公共安装包。
 
-1. 复制 `ios/Config.local.plist.example` 为 `ios/Config.local.plist`。此文件已被 Git 忽略。
-2. 在本机配置文件中填写 `PVEClientLocalURL`（例如 `http://192.168.1.10:8765/`）和/或 `PVEClientPublicURL`（例如 `https://pve.example.com/`），至少填写一个；把 `CFBundleIdentifier` 改成自己的唯一标识。
-3. 运行 `bash scripts/build-ios-ipa.sh`，产物在 `dist-ios/`，为未签名 IPA；使用自己的 Apple 开发者证书签名后安装。
-4. 提交公开仓库时只保留 `Config.local.plist.example`，不要提交本机配置。
+在 macOS 上运行 `bash scripts/build-ios-ipa.sh` 可生成 `dist-ios/` 下的未签名 IPA。需要通过 Apple Developer 直接安装或提交 App Store 时，使用自己的 Bundle ID、开发者证书和 provisioning profile 完成签名。CI 发布的 IPA 未签名，不能直接安装到 iPhone。
 
-公网地址必须已经按 [公网访问指南](../docs/remote-access.md) 部署。iOS 应用不保存或提供服务端口令；在页面上输入你自己设定的应用登录口令。PVE 主机的 SSH 凭据在应用内的连接配置里单独填写。
+应用不携带 PVE 地址、SSH 凭据或服务端口令。公网部署方式见 [公网访问指南](../docs/remote-access.md)。

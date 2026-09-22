@@ -5,7 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="${VERSION:-1.15}"
+VERSION="${VERSION:-1.0.0}"
+VERSION="${VERSION#v}"
 BUNDLE_ID="${BUNDLE_ID:-com.pveclient.shell}"
 PYTHON_BIN="${PYTHON:-python3}"
 VENV="${VENV:-.venv-mac}"

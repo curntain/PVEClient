@@ -12,14 +12,14 @@ PUBLIC_ROOT_FILES = {
     "client.env.example", "main.py", "requirements-macos.txt",
     "requirements-server.txt", "requirements.txt", "run-dev.bat",
 }
-PUBLIC_DIRS = {"app", "assets", "docs", "ios", "mac", "scripts", "static", "tests", ".github"}
+PUBLIC_DIRS = {"app", "assets", "docs", "ios", "mac", "scripts", "static", "tests", ".github", "android", "installer"}
 BLOCKED_PARTS = {
     ".git", ".build", ".swiftpm", ".swiftpm-mirrors", "__pycache__",
     "data", "dist", "dist-ios", "dist-mac", "build", "build-mac",
     "backups", "node_modules", "xcuserdata",
 }
 BLOCKED_NAMES = {"client.env", "Config.local.plist", ".DS_Store", ".key", "session.key"}
-ALLOWED_SUFFIXES = {".py", ".swift", ".sh", ".bat", ".md", ".html", ".css", ".js", ".png", ".ico", ".plist", ".spec", ".txt", ".yml", ".resolved", ".example"}
+ALLOWED_SUFFIXES = {".py", ".swift", ".sh", ".bat", ".md", ".html", ".css", ".js", ".png", ".ico", ".plist", ".spec", ".txt", ".yml", ".resolved", ".example", ".java", ".xml", ".kts", ".iss", ".yaml"}
 
 
 def included(path: Path) -> bool:

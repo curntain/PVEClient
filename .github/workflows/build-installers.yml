@@ -1,0 +1,138 @@
+name: Build installers
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip pyinstaller -r requirements.txt
+      - name: Build Windows installer
+        shell: pwsh
+        run: ./scripts/build-windows.ps1 -Version "${{ github.ref_type == 'tag' && github.ref_name || format('1.0.{0}', github.run_number) }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PVEClient-windows
+          path: dist-windows/*.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip pyinstaller -r requirements-server.txt
+      - name: Build Debian package
+        run: bash scripts/build-linux.sh
+        env:
+          VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('1.0.{0}', github.run_number) }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PVEClient-linux
+          path: dist-linux/*.deb
+          if-no-files-found: error
+          retention-days: 14
+
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build Android APK
+        run: bash scripts/build-android.sh
+        env:
+          VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('1.0.{0}', github.run_number) }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PVEClient-android
+          path: dist-android/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build macOS app
+        run: bash scripts/build-macos.sh
+        env:
+          VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('1.0.{0}', github.run_number) }}
+      - name: Create DMG
+        run: hdiutil create -volname PVEClient -srcfolder dist-mac/PVEClient.app -ov -format UDZO "dist-mac/PVEClient-macos-${{ matrix.arch }}-${{ github.ref_type == 'tag' && github.ref_name || format('1.0.{0}', github.run_number) }}.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PVEClient-macos-${{ matrix.arch }}
+          path: |
+            dist-mac/*.dmg
+            dist-mac/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build unsigned iOS IPA
+        run: bash scripts/build-ios-ipa.sh
+        env:
+          VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('1.0.{0}', github.run_number) }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PVEClient-ios-unsigned
+          path: dist-ios/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux, android, macos, ios]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: PVEClient-*
+          merge-multiple: true
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release-assets/* --repo "$GITHUB_REPOSITORY" --generate-notes || gh release upload "$GITHUB_REF_NAME" release-assets/* --repo "$GITHUB_REPOSITORY" --clobber

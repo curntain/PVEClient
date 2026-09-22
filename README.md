@@ -1,28 +1,20 @@
 # PVE 远程管理客户端
 
-通过 SSH 管理 Proxmox VE 的桌面客户端，提供 Windows 版、macOS SwiftUI 外壳，以及可自行构建的 iOS 客户端。支持监控、虚拟机与容器操作、文件管理、终端，以及在应用内打开其他管理系统的网页。
+通过 SSH 管理 Proxmox VE 的客户端，支持 Windows、Linux、macOS、Android 和 iOS。支持监控、虚拟机与容器操作、文件管理、终端，以及在应用内打开其他管理系统的网页。
 
-## 开始使用
+## 下载与自动构建
 
-### Windows
+GitHub Actions 会在 `main` 分支更新和手动运行时构建 Windows、Linux、Android、macOS（Apple 芯片与 Intel）及 iOS 产物。打开仓库的 **Actions → Build installers** 查看运行状态并下载构建产物；每次产物保留 14 天。
 
-安装 Python 3.11+，在项目目录运行 `run-dev.bat`。生成可分发的 Windows 目录运行 `build.bat`；生成结果在 `dist/`。打包步骤请在 Windows 上执行。
+发布正式版本时，在仓库创建并推送版本标签，例如 `v1.2.0`。流水线完成后会自动在 GitHub **Releases** 附上安装包：
 
-### macOS
+- Windows：`PVEClient-Windows-x64-…-Setup.exe`
+- Linux：Debian/Ubuntu amd64 `.deb`
+- Android：APK（调试签名，可在 Android 设置中允许安装此来源）
+- macOS：Apple 芯片和 Intel 各自的 DMG 与 ZIP
+- iOS：未签名 IPA。安装到设备或提交 App Store 需要使用自己的 Apple 开发者证书和 provisioning profile 签名；GitHub 公共构建不会包含个人证书。首次启动后在应用内填写服务地址。
 
-安装 Xcode 命令行工具和 Python 3.11+，然后运行：
-
-```bash
-bash scripts/mac-doctor.sh
-bash scripts/build-macos.sh
-open dist-mac/PVEClient.app
-```
-
-构建脚本自动安装依赖并编译 Swift 外壳；详细说明见 [mac/README.md](mac/README.md)。
-
-### iOS
-
-将 `ios/Config.local.plist.example` 复制为被 Git 忽略的 `ios/Config.local.plist`，填写自己的地址和 Bundle ID，再运行 `bash scripts/build-ios-ipa.sh`。输出是未签名 IPA，需要用自己的 Apple 开发者身份签名。详见 [ios/README.md](ios/README.md)。
+当前工作流只构建 Linux amd64 Debian 包。Windows 安装器和 Android APK 可直接安装；macOS 包为未公证构建，首次打开可能需要在系统隐私与安全设置中确认。要本机开发：Windows 运行 `run-dev.bat`，macOS 运行 `bash scripts/build-macos.sh`，iOS 使用 `bash scripts/build-ios-ipa.sh`。
 
 ## 连接 PVE 与口令
 
