@@ -1,13 +1,6 @@
 # PVE 远程管理客户端
 
 通过 SSH 管理 Proxmox VE 的客户端，支持 Windows、Linux、macOS、Android 和 iOS。支持监控、虚拟机与容器操作、文件管理、终端，以及在应用内打开其他管理系统的网页。
-
-## 下载与自动构建
-
-GitHub Actions 会在 `main` 分支更新和手动运行时构建 Windows、Linux、Android、macOS（Apple 芯片与 Intel）及 iOS 产物。打开仓库的 **Actions → Build installers** 查看运行状态并下载构建产物；每次产物保留 14 天。
-
-发布正式版本时，在仓库创建并推送版本标签，例如 `v1.2.0`。流水线完成后会自动在 GitHub **Releases** 附上安装包：
-
 - Windows：`PVEClient-Windows-x64-…-Setup.exe`
 - Linux：Debian/Ubuntu amd64 `.deb`
 - Android：APK（调试签名，可在 Android 设置中允许安装此来源）
