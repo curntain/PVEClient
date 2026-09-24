@@ -7,10 +7,7 @@
 - Android：APK（调试签名，可在 Android 设置中允许安装此来源）
 - macOS：Apple 芯片和 Intel 各自的 DMG 与 ZIP
 - iOS：未签名 IPA。安装到设备或提交 App Store 需要使用自己的 Apple 开发者证书和 provisioning profile 签名；GitHub 公共构建不会包含个人证书。首次启动后在应用内填写服务地址。
-
-GitHub Actions 会在推送到 `main` 或 `v*` 版本标签时构建 Windows 安装器、Linux amd64 Debian 包、Android APK、Apple 芯片和 Intel 版 macOS DMG/ZIP，以及未签名的 iOS IPA。推送到 `main` 的构建产物作为 Actions artifact 保留 14 天；推送 `v*` 标签时，所有平台构建成功后会自动创建或更新对应的 GitHub Release 并附上安装包。
-
-Android APK 使用调试签名，可在 Android 设置中允许安装此来源。macOS 包未经 Apple 公证，首次打开时可能需要在“系统设置 → 隐私与安全性”中允许。iOS IPA 未签名，安装到设备或提交 App Store 前需要使用自己的 Apple 开发者证书和 provisioning profile 签名。要在本机开发：Windows 运行 `run-dev.bat`，macOS 运行 `bash scripts/build-macos.sh`，iOS 使用 `bash scripts/build-ios-ipa.sh`。
+-Android APK 使用调试签名，可在 Android 设置中允许安装此来源。macOS 包未经 Apple 公证，首次打开时可能需要在“系统设置 → 隐私与安全性”中允许。iOS IPA 未签名，安装到设备或提交 App Store 前需要使用自己的 Apple 开发者证书和 provisioning profile 签名。要在本机开发：Windows 运行 `run-dev.bat`，macOS 运行 `bash scripts/build-macos.sh`，iOS 使用 `bash scripts/build-ios-ipa.sh`。
 
 ## 连接 PVE 与口令
 
@@ -42,8 +39,6 @@ Python 依赖见 `requirements.txt`；Swift 依赖由 Swift Package Manager 下�
 ## 连接 PVE 与口令
 
 应用内「连接配置」填 PVE 主机的内网 IP 或你自己的域名、SSH 端口（通常为 22）、SSH 用户名，以及该用户的密码或私钥。项目**不附带**任何 PVE 主机口令。`root` 的初始密码是安装 PVE 时设置的密码；如果主机由别人维护，应向管理员取得有权限的 SSH 凭据。无法读取已有密码时，应由主机管理员按其管理流程重设，切勿从代码或 GitHub 寻找。应用层网页登录口令是另一套凭据，见下文。
-
-开发运行时连接配置保存在项目 `data/`；打包后保存在 Windows `%LOCALAPPDATA%\PVEClient\` 或 macOS `~/Library/Application Support/PVEClient/`。这些目录和其中的密钥、会话、日志都不能上传。密码和私钥由本机生成的密钥加密，备份或迁移时要一起保护。
 
 ## 公网访问
 
